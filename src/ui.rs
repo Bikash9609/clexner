@@ -219,7 +219,6 @@ pub fn run_tui(targets: &[CacheTarget]) -> Result<()> {
                         "[ ]"
                     };
                     let cursor = if i == idx { ">" } else { " " };
-                    let prefix = format!("{cursor} {mark} ");
                     let size = if row.is_header {
                         "".to_string()
                     } else {
@@ -255,15 +254,10 @@ pub fn run_tui(targets: &[CacheTarget]) -> Result<()> {
                     } else {
                         ""
                     };
-                    let text = if row.is_header {
-                        row.text.clone()
+                    let content = if row.is_header {
+                        format!("{cursor} {mark} {}", row.text)
                     } else {
-                        format!("  {}", row.text)
-                    };
-                    let content = if !row.is_header {
-                        format!("{prefix}{:<10} {}{}", size, text, status_tag)
-                    } else {
-                        format!("{prefix}{:<10} {}{}", size, text, risk_tag)
+                        format!("{cursor}     {mark} {:<10} {}{}", size, row.text, status_tag)
                     };
                     let style = if row.is_header {
                         Style::default()
