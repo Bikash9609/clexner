@@ -15,6 +15,12 @@ cargo run
 
 This starts the interactive TUI flow (detect -> scan -> cleanup UI).
 
+Or run the explicit TUI subcommand:
+
+```bash
+cargo run -- tui
+```
+
 ## Useful Commands
 
 ```bash
@@ -34,27 +40,28 @@ cargo run -- clean --targets npm_cache,yarn_cache
 cargo run -- clean --targets npm_cache,yarn_cache --confirm
 
 # Include recursive .venv discovery from home dir
-cargo run -- --include-venv
+cargo run -- --include-venv scan
+
+# Include recursive .venv discovery and open TUI
+cargo run -- --include-venv tui
 ```
 
 ## Cleaning Supported Right Now
 
-Targets are auto-included based on detected installed tools.
+Tools supported for cleanup right now (with their cache targets/paths):
 
-- `npm_cache` -> `~/.npm`
-- `yarn_cache` -> `~/Library/Caches/Yarn`
-- `pnpm_store` -> `~/Library/pnpm/store`
-- `uv_cache` -> `~/.cache/uv`
-- `pip_cache` -> `~/Library/Caches/pip`
-- `poetry_cache` -> `~/Library/Caches/pypoetry`
-- `pipx_cache` -> `~/.cache/pipx`
-- `cargo_registry` -> `~/.cargo/registry`
-- `cargo_git` -> `~/.cargo/git`
-- `rustup_downloads` -> `~/.rustup/downloads`
-- `rustup_tmp` -> `~/.rustup/tmp`
-- `docker_cache` -> `~/Library/Caches/com.docker.docker`
-- `wasp_cache` -> `~/.wasp/cache`
-- `venv_dirs` (optional) -> recursive `.venv` directories from `~` (enabled via `--include-venv`)
+- `npm` -> `npm_cache` -> `~/.npm`
+- `yarn` -> `yarn_cache` -> `~/Library/Caches/Yarn`
+- `pnpm` -> `pnpm_store` -> `~/Library/pnpm/store`
+- `uv` -> `uv_cache` -> `~/.cache/uv`
+- `pip` -> `pip_cache` -> `~/Library/Caches/pip`
+- `poetry` -> `poetry_cache` -> `~/Library/Caches/pypoetry`
+- `pipx` -> `pipx_cache` -> `~/.cache/pipx`
+- `cargo` -> `cargo_registry` + `cargo_git` -> `~/.cargo/registry`, `~/.cargo/git`
+- `rustup` -> `rustup_downloads` + `rustup_tmp` -> `~/.rustup/downloads`, `~/.rustup/tmp`
+- `docker` -> `docker_cache` -> `~/Library/Caches/com.docker.docker`
+- `wasp` -> `wasp_cache` -> `~/.wasp/cache`
+- `.venv` (optional) -> `venv_dirs` -> recursive `.venv` directories from `~` (enabled via `--include-venv`)
 
 ## What It Does Not Support Yet
 
