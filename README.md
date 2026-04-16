@@ -1,9 +1,9 @@
-# cachectl
+# Clexner
 
-<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/01ed7a83-3f4c-495d-a4ca-d7cbc58ef6d0" />
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/21fe0bd3-b2e5-4c7c-bc10-68e604cad488" />
 
 
-`cachectl` is a Rust CLI/TUI tool for scanning and cleaning common local dev caches.
+`Clexner` is a Rust CLI/TUI tool for scanning and cleaning common local dev caches.
 
 ## Requirements
 
