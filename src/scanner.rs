@@ -221,7 +221,23 @@ pub fn collect_deletion_entries_compact(
 fn is_essential_target(target_id: &str) -> bool {
     matches!(
         target_id,
-        "cargo_registry" | "cargo_git" | "rustup_downloads" | "rustup_tmp" | "venv_dirs"
+        "cargo_registry"
+            | "cargo_git"
+            | "rustup_downloads"
+            | "rustup_tmp"
+            | "venv_dirs"
+            | "nuget_packages"
+            | "gradle_caches"
+            | "gradle_wrapper_dists"
+            | "xcode_derived_data"
+            | "swiftpm_cache"
+            | "pub_cache"
+            | "cabal_cache"
+            | "stack_cache"
+            | "ivy_cache"
+            | "coursier_cache"
+            | "sbt_boot_cache"
+            | "huggingface_hub_cache"
     )
 }
 

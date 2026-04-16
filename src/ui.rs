@@ -479,6 +479,37 @@ pub fn run_tui(targets: &[CacheTarget]) -> Result<()> {
 fn build_rows(targets: &[CacheTarget]) -> Vec<RowEntry> {
     let mut rows = Vec::new();
     for target in targets {
+        if use_grouped_rows_for_target(&target.id) {
+            if target.size_bytes == 0 || !target.path.exists() {
+                continue;
+            }
+            let header = format!(
+                "{} ({}) - {}",
+                target.label,
+                target.id,
+                format_size(target.size_bytes, DECIMAL)
+            );
+            rows.push(RowEntry {
+                text: header,
+                category: target.id.clone(),
+                path: None,
+                size_bytes: target.size_bytes,
+                essential_warning: false,
+                is_header: true,
+                status: RowStatus::Idle,
+            });
+            rows.push(RowEntry {
+                text: truncate_middle(&target.path.display().to_string(), 86),
+                category: target.id.clone(),
+                path: Some(target.path.clone()),
+                size_bytes: target.size_bytes,
+                essential_warning: grouped_target_is_caution(&target.id),
+                is_header: false,
+                status: RowStatus::Idle,
+            });
+            continue;
+        }
+
         let entries: Vec<DeletionEntry> =
             scanner::collect_deletion_entries_compact(target, UI_MIN_FILE_SIZE_BYTES);
         if entries.is_empty() {
@@ -515,6 +546,50 @@ fn build_rows(targets: &[CacheTarget]) -> Vec<RowEntry> {
     rows
 }
 
+fn use_grouped_rows_for_target(target_id: &str) -> bool {
+    matches!(
+        target_id,
+        "go_build_cache"
+            | "composer_cache"
+            | "nuget_packages"
+            | "nuget_http_cache"
+            | "nuget_plugins_cache"
+            | "gradle_caches"
+            | "gradle_wrapper_dists"
+            | "xcode_derived_data"
+            | "swiftpm_cache"
+            | "pub_cache"
+            | "cabal_cache"
+            | "stack_cache"
+            | "hex_cache"
+            | "ivy_cache"
+            | "coursier_cache"
+            | "sbt_boot_cache"
+            | "pipenv_cache"
+            | "huggingface_hub_cache"
+            | "kube_cache"
+            | "helm_cache"
+    )
+}
+
+fn grouped_target_is_caution(target_id: &str) -> bool {
+    matches!(
+        target_id,
+        "nuget_packages"
+            | "gradle_caches"
+            | "gradle_wrapper_dists"
+            | "xcode_derived_data"
+            | "swiftpm_cache"
+            | "pub_cache"
+            | "cabal_cache"
+            | "stack_cache"
+            | "ivy_cache"
+            | "coursier_cache"
+            | "sbt_boot_cache"
+            | "huggingface_hub_cache"
+    )
+}
+
 fn truncate_middle(input: &str, max_len: usize) -> String {
     if input.len() <= max_len {
         return input.to_string();
@@ -541,6 +616,26 @@ fn target_info(target_id: &str, essential_warning: bool) -> (&'static str, &'sta
         "docker_cache" => "Docker local cache/state files",
         "wasp_cache" => "Wasp framework cache data",
         "venv_dirs" => "Project Python virtual environments (.venv)",
+        "go_build_cache" => "Go build artifact cache",
+        "composer_cache" => "Composer package download cache",
+        "nuget_packages" => "NuGet global package cache",
+        "nuget_http_cache" => "NuGet HTTP response cache",
+        "nuget_plugins_cache" => "NuGet plugins cache",
+        "gradle_caches" => "Gradle shared dependency/build cache",
+        "gradle_wrapper_dists" => "Gradle wrapper downloaded distributions",
+        "xcode_derived_data" => "Xcode DerivedData build cache",
+        "swiftpm_cache" => "Swift package manager cache",
+        "pub_cache" => "Dart/Flutter pub package cache",
+        "cabal_cache" => "Cabal package cache",
+        "stack_cache" => "Stack package cache",
+        "hex_cache" => "Hex package cache",
+        "ivy_cache" => "Ivy dependency cache",
+        "coursier_cache" => "Coursier dependency cache",
+        "sbt_boot_cache" => "sbt launcher/bootstrap cache",
+        "pipenv_cache" => "Pipenv package cache",
+        "huggingface_hub_cache" => "Hugging Face hub cache",
+        "kube_cache" => "kubectl local discovery/http cache",
+        "helm_cache" => "Helm chart/index cache",
         _ => "Tool cache data",
     };
 

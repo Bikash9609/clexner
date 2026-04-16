@@ -30,6 +30,62 @@ pub fn detect_tools() -> Vec<EcosystemTools> {
             tools: tools::detect_many(&["rustc", "cargo", "rustup"]),
         },
         EcosystemTools {
+            ecosystem: "Go".to_string(),
+            tools: tools::detect_many(&["go"]),
+        },
+        EcosystemTools {
+            ecosystem: "Ruby".to_string(),
+            tools: tools::detect_many(&["ruby", "gem", "bundle", "bundler"]),
+        },
+        EcosystemTools {
+            ecosystem: "PHP".to_string(),
+            tools: tools::detect_many(&["php", "composer"]),
+        },
+        EcosystemTools {
+            ecosystem: ".NET".to_string(),
+            tools: tools::detect_many(&["dotnet"]),
+        },
+        EcosystemTools {
+            ecosystem: "C/C++".to_string(),
+            tools: tools::detect_many(&["gcc", "g++", "clang", "cmake", "make", "ninja"]),
+        },
+        EcosystemTools {
+            ecosystem: "Android".to_string(),
+            tools: tools::detect_many(&["adb", "gradle", "sdkmanager", "avdmanager"]),
+        },
+        EcosystemTools {
+            ecosystem: "Swift/iOS".to_string(),
+            tools: tools::detect_many(&["swift", "swiftc", "xcodebuild"]),
+        },
+        EcosystemTools {
+            ecosystem: "Flutter/Dart".to_string(),
+            tools: tools::detect_many(&["flutter", "dart"]),
+        },
+        EcosystemTools {
+            ecosystem: "Haskell".to_string(),
+            tools: tools::detect_many(&["ghc", "cabal", "stack"]),
+        },
+        EcosystemTools {
+            ecosystem: "Elixir/Erlang".to_string(),
+            tools: tools::detect_many(&["elixir", "mix", "erl"]),
+        },
+        EcosystemTools {
+            ecosystem: "Scala".to_string(),
+            tools: tools::detect_many(&["scala", "sbt"]),
+        },
+        EcosystemTools {
+            ecosystem: "ML/Data".to_string(),
+            tools: tools::detect_many(&["conda", "mamba", "pipenv", "jupyter", "huggingface-cli"]),
+        },
+        EcosystemTools {
+            ecosystem: "DevOps".to_string(),
+            tools: tools::detect_many(&["kubectl", "helm", "terraform", "ansible"]),
+        },
+        EcosystemTools {
+            ecosystem: "Databases".to_string(),
+            tools: tools::detect_many(&["mysql", "psql", "redis-cli", "mongod"]),
+        },
+        EcosystemTools {
             ecosystem: "Container".to_string(),
             tools: tools::detect_many(&["docker"]),
         },
@@ -39,7 +95,13 @@ pub fn detect_tools() -> Vec<EcosystemTools> {
         },
         EcosystemTools {
             ecosystem: "Common Managers".to_string(),
-            tools: tools::detect_many(&["brew"]),
+            tools: tools::detect_many(&[
+                "brew", "apt", "apt-get", "yum", "dnf", "pacman", "snap",
+            ]),
+        },
+        EcosystemTools {
+            ecosystem: "Misc".to_string(),
+            tools: tools::detect_many(&["git", "ffmpeg", "imagemagick"]),
         },
     ]
 }

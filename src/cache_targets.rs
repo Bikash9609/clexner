@@ -157,6 +157,176 @@ pub fn collect_cache_targets(
             true,
         );
     }
+    if installed.contains("go") {
+        add(
+            "go_build_cache",
+            "Go",
+            "Go build cache",
+            home.join("Library/Caches/go-build"),
+            false,
+        );
+    }
+    if installed.contains("composer") {
+        add(
+            "composer_cache",
+            "PHP",
+            "Composer cache",
+            home.join("Library/Caches/composer"),
+            false,
+        );
+    }
+    if installed.contains("dotnet") {
+        add(
+            "nuget_packages",
+            ".NET",
+            "NuGet global packages",
+            home.join(".nuget/packages"),
+            false,
+        );
+        add(
+            "nuget_http_cache",
+            ".NET",
+            "NuGet HTTP cache",
+            home.join(".local/share/NuGet/v3-cache"),
+            false,
+        );
+        add(
+            "nuget_plugins_cache",
+            ".NET",
+            "NuGet plugins cache",
+            home.join(".local/share/NuGet/plugins-cache"),
+            false,
+        );
+    }
+    if installed.contains("gradle")
+        || installed.contains("adb")
+        || installed.contains("sdkmanager")
+        || installed.contains("avdmanager")
+    {
+        add(
+            "gradle_caches",
+            "Android",
+            "Gradle caches",
+            home.join(".gradle/caches"),
+            false,
+        );
+        add(
+            "gradle_wrapper_dists",
+            "Android",
+            "Gradle wrapper dists",
+            home.join(".gradle/wrapper/dists"),
+            false,
+        );
+    }
+    if installed.contains("swift") || installed.contains("swiftc") || installed.contains("xcodebuild") {
+        add(
+            "xcode_derived_data",
+            "Swift/iOS",
+            "Xcode DerivedData",
+            home.join("Library/Developer/Xcode/DerivedData"),
+            false,
+        );
+        add(
+            "swiftpm_cache",
+            "Swift/iOS",
+            "SwiftPM cache",
+            home.join("Library/Caches/org.swift.swiftpm"),
+            false,
+        );
+    }
+    if installed.contains("flutter") || installed.contains("dart") {
+        add(
+            "pub_cache",
+            "Flutter/Dart",
+            "Dart pub cache",
+            home.join(".pub-cache"),
+            false,
+        );
+    }
+    if installed.contains("cabal") || installed.contains("stack") || installed.contains("ghc") {
+        add(
+            "cabal_cache",
+            "Haskell",
+            "Cabal cache",
+            home.join(".cache/cabal"),
+            false,
+        );
+        add(
+            "stack_cache",
+            "Haskell",
+            "Stack cache",
+            home.join(".stack/pantry"),
+            false,
+        );
+    }
+    if installed.contains("elixir") || installed.contains("mix") {
+        add(
+            "hex_cache",
+            "Elixir/Erlang",
+            "Hex package cache",
+            home.join(".hex/packages"),
+            false,
+        );
+    }
+    if installed.contains("sbt") || installed.contains("scala") {
+        add(
+            "ivy_cache",
+            "Scala",
+            "Ivy cache",
+            home.join(".ivy2/cache"),
+            false,
+        );
+        add(
+            "coursier_cache",
+            "Scala",
+            "Coursier cache",
+            home.join(".cache/coursier"),
+            false,
+        );
+        add(
+            "sbt_boot_cache",
+            "Scala",
+            "sbt boot cache",
+            home.join(".sbt/boot"),
+            false,
+        );
+    }
+    if installed.contains("pipenv") {
+        add(
+            "pipenv_cache",
+            "ML/Data",
+            "Pipenv cache",
+            home.join("Library/Caches/pipenv"),
+            false,
+        );
+    }
+    if installed.contains("huggingface-cli") {
+        add(
+            "huggingface_hub_cache",
+            "ML/Data",
+            "Hugging Face hub cache",
+            home.join(".cache/huggingface/hub"),
+            false,
+        );
+    }
+    if installed.contains("kubectl") {
+        add(
+            "kube_cache",
+            "DevOps",
+            "kubectl cache",
+            home.join(".kube/cache"),
+            false,
+        );
+    }
+    if installed.contains("helm") {
+        add(
+            "helm_cache",
+            "DevOps",
+            "Helm cache",
+            home.join("Library/Caches/helm"),
+            false,
+        );
+    }
 
     Ok(out)
 }
