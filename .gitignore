@@ -1,0 +1,12 @@
+/target/
+
+# Cargo lockfile for apps/binaries should be kept.
+#! Cargo.lock
+
+# Rustfmt / docs temp files
+**/*.rs.bk
+
+# OS/editor noise
+.DS_Store
+.idea/
+.vscode/
