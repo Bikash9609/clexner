@@ -1,5 +1,7 @@
 use crate::cache_targets::CacheTarget;
 use std::path::{Path, PathBuf};
+use std::sync::{mpsc, Arc, Mutex};
+use std::thread;
 use walkdir::WalkDir;
 
 pub fn scan_targets(targets: &mut [CacheTarget]) {
@@ -11,24 +13,89 @@ where
     F: FnMut(usize, usize, &std::path::Path),
 {
     let total = targets.len();
-    for (i, target) in targets.iter_mut().enumerate() {
-        let current = i + 1;
-        on_progress(current, total, &target.path);
-
-        if target.id == "venv_dirs" {
-            let (exists, size) = scan_venv_dirs(&target.path);
-            target.exists = exists;
-            target.size_bytes = size;
-            continue;
-        }
-
-        target.exists = target.path.exists();
-        target.size_bytes = if target.exists {
-            dir_size_bytes(&target.path)
-        } else {
-            0
-        };
+    if targets.is_empty() {
+        return;
     }
+    on_progress(0, total, &targets[0].path);
+
+    let worker_count = recommended_scan_workers(targets.len());
+    if worker_count <= 1 {
+        for (idx, target) in targets.iter_mut().enumerate() {
+            let (exists, size_bytes) = scan_target(&target.id, &target.path);
+            target.exists = exists;
+            target.size_bytes = size_bytes;
+            on_progress(idx + 1, total, &target.path);
+        }
+        return;
+    }
+
+    let jobs: Vec<(usize, String, PathBuf)> = targets
+        .iter()
+        .enumerate()
+        .map(|(idx, target)| (idx, target.id.clone(), target.path.clone()))
+        .collect();
+    let job_queue = Arc::new(Mutex::new(jobs));
+    let (tx, rx) = mpsc::channel::<(usize, bool, u64)>();
+
+    let mut handles = Vec::with_capacity(worker_count);
+    for _ in 0..worker_count {
+        let tx = tx.clone();
+        let job_queue = Arc::clone(&job_queue);
+        handles.push(thread::spawn(move || loop {
+            let next_job = {
+                let mut locked = match job_queue.lock() {
+                    Ok(guard) => guard,
+                    Err(_) => return,
+                };
+                locked.pop()
+            };
+
+            let Some((idx, id, path)) = next_job else {
+                break;
+            };
+
+            let (exists, size_bytes) = scan_target(&id, &path);
+            if tx.send((idx, exists, size_bytes)).is_err() {
+                break;
+            }
+        }));
+    }
+    drop(tx);
+
+    let mut completed = 0usize;
+    for (idx, exists, size_bytes) in rx {
+        if let Some(target) = targets.get_mut(idx) {
+            target.exists = exists;
+            target.size_bytes = size_bytes;
+            completed += 1;
+            on_progress(completed, total, &target.path);
+        }
+    }
+
+    for handle in handles {
+        let _ = handle.join();
+    }
+}
+
+fn recommended_scan_workers(target_count: usize) -> usize {
+    if target_count == 0 {
+        return 0;
+    }
+    let logical_cores = thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(2);
+    let budgeted_workers = logical_cores.saturating_sub(1).max(1);
+    budgeted_workers.min(4).min(target_count)
+}
+
+fn scan_target(id: &str, path: &Path) -> (bool, u64) {
+    if id == "venv_dirs" {
+        return scan_venv_dirs(path);
+    }
+
+    let exists = path.exists();
+    let size_bytes = if exists { dir_size_bytes(path) } else { 0 };
+    (exists, size_bytes)
 }
 
 pub fn dir_size_bytes(path: &std::path::Path) -> u64 {
@@ -97,6 +164,57 @@ pub fn collect_deletion_entries(target: &CacheTarget) -> Vec<DeletionEntry> {
             });
         }
     }
+    out
+}
+
+pub fn collect_deletion_entries_compact(
+    target: &CacheTarget,
+    min_file_size_bytes: u64,
+) -> Vec<DeletionEntry> {
+    let mut out = Vec::new();
+    let roots: Vec<PathBuf> = if target.id == "venv_dirs" {
+        find_venv_paths(&target.path)
+    } else if target.path.exists() {
+        vec![target.path.clone()]
+    } else {
+        vec![]
+    };
+
+    for root in roots {
+        for entry in WalkDir::new(&root)
+            .min_depth(1)
+            .max_depth(1)
+            .into_iter()
+            .filter_map(Result::ok)
+        {
+            let path = entry.path().to_path_buf();
+            if entry.file_type().is_dir() {
+                out.push(DeletionEntry {
+                    category: target.id.clone(),
+                    path,
+                    size_bytes: dir_size_bytes(entry.path()),
+                    is_essential_warning: is_essential_target(&target.id),
+                });
+                continue;
+            }
+
+            let size_bytes = entry.metadata().map(|m| m.len()).unwrap_or(0);
+            if size_bytes >= min_file_size_bytes {
+                out.push(DeletionEntry {
+                    category: target.id.clone(),
+                    path,
+                    size_bytes,
+                    is_essential_warning: is_essential_target(&target.id),
+                });
+            }
+        }
+    }
+
+    out.sort_by(|a, b| {
+        b.size_bytes
+            .cmp(&a.size_bytes)
+            .then_with(|| a.path.cmp(&b.path))
+    });
     out
 }
 

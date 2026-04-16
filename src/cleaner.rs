@@ -1,11 +1,13 @@
 use crate::cache_targets::CacheTarget;
 use crate::scanner;
 use anyhow::Result;
+use crossterm::event::{read, Event, KeyCode};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use humansize::{format_size, DECIMAL};
 use std::borrow::Cow;
 use std::fs;
-use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 pub fn confirm_and_clean(targets: Vec<CacheTarget>, skip_confirm: bool) -> Result<()> {
     println!("Selected targets (specific = Space, group = g, all = a):");
@@ -31,15 +33,9 @@ pub fn confirm_and_clean(targets: Vec<CacheTarget>, skip_confirm: bool) -> Resul
     }
     println!("Total potential cleanup: {}", format_size(total, DECIMAL));
 
-    if !skip_confirm {
-        print!("Type YES to continue: ");
-        io::stdout().flush()?;
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        if input.trim() != "YES" {
-            println!("Cleanup cancelled.");
-            return Ok(());
-        }
+    if !skip_confirm && !prompt_confirm()? {
+        println!("Cleanup cancelled.");
+        return Ok(());
     }
 
     for target in targets {
@@ -67,54 +63,62 @@ pub fn confirm_and_clean(targets: Vec<CacheTarget>, skip_confirm: bool) -> Resul
     Ok(())
 }
 
-pub fn confirm_and_clean_paths(mut paths: Vec<PathBuf>, skip_confirm: bool) -> Result<()> {
-    paths.sort_by_key(|p| std::cmp::Reverse(scanner::path_depth(p)));
-    paths.dedup();
+pub fn confirm_and_clean_paths(mut entries: Vec<(PathBuf, u64)>, skip_confirm: bool) -> Result<()> {
+    entries.sort_by_key(|(p, _)| std::cmp::Reverse(scanner::path_depth(p)));
+    entries.dedup_by(|a, b| a.0 == b.0);
 
     println!("Paths scheduled for deletion:");
-    for p in &paths {
-        let size = if p.is_file() {
-            fs::metadata(p).map(|m| m.len()).unwrap_or(0)
-        } else {
-            0
-        };
+    for (p, size) in &entries {
         let name = p
             .file_name()
             .map(|n| n.to_string_lossy())
             .unwrap_or(Cow::Borrowed("/"));
         let emphasized_name = format!("\x1b[1m{}\x1b[0m", name);
-        let line = format_path_line(p, &emphasized_name, size, 120);
+        let line = format_path_line(p, &emphasized_name, *size, 120);
         println!("- {}", line);
     }
 
-    if !skip_confirm {
-        print!("Type YES to continue: ");
-        io::stdout().flush()?;
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        if input.trim() != "YES" {
-            println!("Cleanup cancelled.");
-            return Ok(());
-        }
+    if !skip_confirm && !prompt_confirm()? {
+        println!("Cleanup cancelled.");
+        return Ok(());
     }
 
-    for path in paths {
+    let start = Instant::now();
+    let planned_bytes: u64 = entries.iter().map(|(_, size)| *size).sum();
+    println!(
+        "Deleting {} items ({})...",
+        entries.len(),
+        format_size(planned_bytes, DECIMAL)
+    );
+    let mut removed_bytes = 0u64;
+    for (path, size) in entries {
         if path.is_file() {
             match fs::remove_file(&path) {
-                Ok(_) => println!("Removed {}", path.display()),
-                Err(e) => println!("Failed {}: {}", path.display(), e),
+                Ok(_) => {
+                    removed_bytes = removed_bytes.saturating_add(size);
+                    println!("→ {}  ✔ removed", path.display());
+                }
+                Err(e) => println!("→ {}  ✖ failed: {}", path.display(), e),
             }
         } else if path.is_dir() {
             match fs::remove_dir_all(&path) {
-                Ok(_) => println!("Removed {}", path.display()),
+                Ok(_) => {
+                    removed_bytes = removed_bytes.saturating_add(size);
+                    println!("→ {}  ✔ removed", path.display());
+                }
                 Err(e) => {
                     if path.exists() {
-                        println!("Failed {}: {}", path.display(), e);
+                        println!("→ {}  ✖ failed: {}", path.display(), e);
                     }
                 }
             }
         }
     }
+    println!(
+        "Freed: {} in {:.1}s",
+        format_size(removed_bytes, DECIMAL),
+        start.elapsed().as_secs_f64()
+    );
     Ok(())
 }
 
@@ -149,4 +153,21 @@ fn format_path_line(path: &Path, highlighted_name: &str, size: u64, width: usize
         .rev()
         .collect();
     format!("{}...{}{}", left_part, right_part, tail)
+}
+
+fn prompt_confirm() -> Result<bool> {
+    println!("Confirm cleanup: press [y] to continue or [n]/[Esc] to cancel.");
+    enable_raw_mode()?;
+    let decision = loop {
+        if let Event::Key(key) = read()? {
+            match key.code {
+                KeyCode::Char('y') | KeyCode::Char('Y') | KeyCode::Enter => break true,
+                KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => break false,
+                _ => {}
+            }
+        }
+    };
+    disable_raw_mode()?;
+    println!();
+    Ok(decision)
 }
